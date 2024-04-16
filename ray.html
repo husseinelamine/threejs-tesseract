@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ray Marching Scene</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Generate colored environment map
+        const envMap = generateColoredEnvMap();
+
+        scene.background = envMap;
+
+        const lightDirection1 = new THREE.Vector3(1, 1, 1).normalize();
+        const lightColor1 = new THREE.Vector3(1, 1, 1);
+
+        // Add more lights if needed
+
+        const material = new THREE.ShaderMaterial({
+            uniforms: {
+                iResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                iTime: { value: 0 },
+                lightDirection1: { value: lightDirection1 },
+                lightColor1: { value: lightColor1 },
+                envMap: { value: envMap } // Pass environment map to shader
+            },
+            vertexShader: `
+                void main() {
+                    gl_Position = vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform vec2 iResolution;
+                uniform float iTime;
+                uniform vec3 lightDirection1;
+                uniform vec3 lightColor1;
+                uniform samplerCube envMap; // Environment map uniform
+
+                // Define raymarching functions here
+
+                void main() {
+                    // Raymarching calculations
+                    
+                    vec3 color = vec3(0.0); // Base color
+
+                    // Apply lighting calculations
+
+                    // Apply reflection from environment map
+
+                    gl_FragColor = vec4(color, 1.0);
+                }
+            `
+        });
+
+        const geometry = new THREE.PlaneGeometry(2, 2);
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+
+        camera.position.z = 3;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            material.uniforms.iTime.value += 0.0025; // Update time uniform
+            renderer.render(scene, camera);
+        }
+
+        animate();
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            material.uniforms.iResolution.value.set(window.innerWidth, window.innerHeight);
+        });
+
+        // Function to generate a colored environment map
+        // Function to generate a colored environment map
+        function generateColoredEnvMap() {
+            const cubeSize = 512;
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(90, 1, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(cubeSize, cubeSize);
+
+            const envMapTarget = new THREE.WebGLCubeRenderTarget(cubeSize, { format: THREE.RGBFormat, generateMipmaps: true });
+
+            const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff, 0x00ffff];
+            const directions = [
+                new THREE.Vector3(1, 0, 0),
+                new THREE.Vector3(-1, 0, 0),
+                new THREE.Vector3(0, 1, 0),
+                new THREE.Vector3(0, -1, 0),
+                new THREE.Vector3(0, 0, 1),
+                new THREE.Vector3(0, 0, -1)
+            ];
+
+            for (let i = 0; i < 6; i++) {
+                const sceneElement = new THREE.Scene();
+
+                const geometry = new THREE.SphereGeometry(5, 32, 32);
+                const material = new THREE.MeshBasicMaterial({ color: colors[i] });
+                const sphere = new THREE.Mesh(geometry, material);
+
+                sceneElement.add(sphere);
+                sceneElement.add(new THREE.AmbientLight(0xffffff));
+
+                camera.position.set(0, 0, 0);
+                camera.lookAt(directions[i]);
+                renderer.render(sceneElement, camera);
+
+                const texture = new THREE.Texture(renderer.domElement);
+                texture.needsUpdate = true;
+
+                envMapTarget.fromEquirectangularTexture(renderer, texture);
+            }
+
+            return envMapTarget.texture;
+        }
+
+    </script>
+</body>
+
+</html>

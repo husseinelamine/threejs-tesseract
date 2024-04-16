@@ -30,7 +30,7 @@
         const lightColor1 = new THREE.Vector3(1, 1, 1); // Color of the first light (white)
 
         const lightDirection2 = new THREE.Vector3(-1, -1, 1).normalize(); // Direction of the second light (opposite diagonal)
-        const lightColor2 = new THREE.Vector3(1, 1, 1); // Color of the second light (white)
+        const lightColor2 = new THREE.Vector3(0.5, 0.5, 1); // Color of the second light (white)
 
         // more lights
 
@@ -38,10 +38,10 @@
         const lightColor3 = new THREE.Vector3(1, 1, 1); // Color of the second light (white)
 
         const lightDirection4 = new THREE.Vector3(-1, 1, 1).normalize(); // Direction of the second light (opposite diagonal)
-        const lightColor4 = new THREE.Vector3(1, 1, 1); // Color of the second light (white)
+        const lightColor4 = new THREE.Vector3(1, 0.5, 1); // Color of the second light (white)
 
         const lightDirection5 = new THREE.Vector3(1, 1, -1).normalize(); // Direction of the second light (opposite diagonal)
-        const lightColor5 = new THREE.Vector3(1, 1, 1); // Color of the second light (white)
+        const lightColor5 = new THREE.Vector3(0.5, 1, 1); // Color of the second light (white)
 
 
 
@@ -200,7 +200,7 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            material.uniforms.iTime.value += 0.01; // Update time uniform
+            material.uniforms.iTime.value += 0.0025; // Update time uniform
             renderer.render(scene, camera);
         }
 
