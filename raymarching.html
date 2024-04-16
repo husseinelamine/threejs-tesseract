@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ray Marching Scene</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const lightDirection1 = new THREE.Vector3(1, 1, 1).normalize(); // Direction of the first light (diagonal)
+        const lightColor1 = new THREE.Vector3(1, 1, 1); // Color of the first light (white)
+
+        const lightDirection2 = new THREE.Vector3(-1, -1, 1).normalize(); // Direction of the second light (opposite diagonal)
+        const lightColor2 = new THREE.Vector3(1, 1, 1); // Color of the second light (white)
+
+        // more lights
+
+        const lightDirection3 = new THREE.Vector3(1, -1, 1).normalize(); // Direction of the second light (opposite diagonal)
+        const lightColor3 = new THREE.Vector3(1, 1, 1); // Color of the second light (white)
+
+        const lightDirection4 = new THREE.Vector3(-1, 1, 1).normalize(); // Direction of the second light (opposite diagonal)
+        const lightColor4 = new THREE.Vector3(1, 1, 1); // Color of the second light (white)
+
+        const lightDirection5 = new THREE.Vector3(1, 1, -1).normalize(); // Direction of the second light (opposite diagonal)
+        const lightColor5 = new THREE.Vector3(1, 1, 1); // Color of the second light (white)
+
+
+
+        const material = new THREE.ShaderMaterial({
+            uniforms: {
+                iResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                iTime: { value: 0 },
+                lightDirection1: { value: lightDirection1 },
+                lightColor1: { value: lightColor1 },
+                lightDirection2: { value: lightDirection2 },
+                lightColor2: { value: lightColor2 },
+                lightDirection3: { value: lightDirection3 },
+                lightColor3: { value: lightColor3 },
+                lightDirection4: { value: lightDirection4 },
+                lightColor4: { value: lightColor4 },
+                lightDirection5: { value: lightDirection5 },
+                lightColor5: { value: lightColor5 },
+            },
+            vertexShader: `
+                void main() {
+                    gl_Position = vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+
+                uniform vec2 iResolution;
+                uniform float iTime;
+                uniform vec3 lightDirection1;
+                uniform vec3 lightColor1;
+                uniform vec3 lightDirection2;
+                uniform vec3 lightColor2;
+                uniform vec3 lightDirection3;
+                uniform vec3 lightColor3;
+                uniform vec3 lightDirection4;
+                uniform vec3 lightColor4;
+                uniform vec3 lightDirection5;
+                uniform vec3 lightColor5;
+
+                float sdSphere(vec3 p, float r) {
+                    return length(p) - r;
+                }
+
+                float sdBox(vec3 p, vec3 b) {
+                    vec3 d = abs(p) - b;
+                    return length(max(d, 0.0)) + min(max(d.x, max(d.y, d.z)), 0.0);
+                }
+
+
+
+
+                vec3 rotateY(vec3 p, float a) {
+                    float s = sin(a);
+                    float c = cos(a);
+                    return vec3(p.x * c - p.z * s, p.y, p.x * s + p.z * c);
+                }
+
+                vec3 rotateX(vec3 p, float a) {
+                    float s = sin(a);
+                    float c = cos(a);
+                    return vec3(p.x, p.y * c - p.z * s, p.y * s + p.z * c);
+                }
+
+                vec3 rotateZ(vec3 p, float a) {
+                    float s = sin(a);
+                    float c = cos(a);
+                    return vec3(p.x * c - p.y * s, p.x * s + p.y * c, p.z);
+                }
+
+                float opU(float d1, float d2) {
+                    return min(d1, d2);
+                }
+
+
+
+
+                float map2(vec3 p) {
+                    p = rotateY(p, iTime);
+                    float d1 = sdSphere(p, 1.0);
+                    float d2 = sdBox(p, vec3(1.0));
+                    return opU(d1, d2);
+                }
+
+                // consttruct a tesseract using constructive solid geometry
+
+                float tesseract(vec3 p) {
+                    p = rotateY(p, iTime);
+                    p = rotateX(p, iTime);
+                    p = rotateZ(p, iTime);
+                    float d1 = sdSphere(p, 1.0);
+                    float d2 = sdBox(p, vec3(1.0));
+                    return opU(d1, d2);
+                }
+
+                vec3 normal2(vec3 p) {
+                    vec2 e = vec2(0.01, 0.0);
+                    return normalize(vec3(
+                        map2(p + e.xyy) - map2(p - e.xyy),
+                        map2(p + e.yxy) - map2(p - e.yxy),
+                        map2(p + e.yyx) - map2(p - e.yyx)
+                    ));
+                }
+
+
+                vec3 raymarch(vec3 ro, vec3 rd) {
+                    float dO = 0.0;
+                    for (int i = 0; i < 100; i++) {
+                        vec3 p = ro + rd * dO;
+                        float dS = tesseract(p);
+                        dO += dS;
+                        if (dS < 0.001 || dO > 100.0) {
+                            break;
+                        }
+                    }
+                    return ro + rd * dO;
+                }
+
+                void main() {
+                    // Calculate normalized device coordinates
+                    vec2 ndc = (gl_FragCoord.xy / iResolution.xy) * 2.0 - 1.0;
+                    
+                    // Calculate ray direction using camera's field of view and aspect ratio
+                    float aspectRatio = iResolution.x / iResolution.y;
+                    float fov = radians(110.0); // Adjust the field of view angle as needed
+                    float tanHalfFov = tan(fov / 2.0);
+                    vec3 rd = normalize(vec3(ndc.x * tanHalfFov * aspectRatio, ndc.y * tanHalfFov, -1.0));
+
+                    vec3 ro = vec3(0.0, 0.0, 3.0);
+                    vec3 p = raymarch(ro, rd);
+                    vec3 n = normal2(p);
+
+                    // lighting
+                    float d1 = dot(n, lightDirection1);
+                    float d2 = dot(n, lightDirection2);
+                    float d3 = dot(n, lightDirection3);
+                    float d4 = dot(n, lightDirection4);
+                    float d5 = dot(n, lightDirection5);
+                    vec3 color = vec3(0.0);
+                    color += lightColor1 * max(d1, 0.0);
+                    color += lightColor2 * 0.5 * max(d2, 0.0);
+                    color += lightColor3 * 0.5 * max(d3, 0.0);
+                    color += lightColor4 * 0.5 * max(d4, 0.0);
+                    color += lightColor5 * 0.5 * max(d5, 0.0);
+                
+
+                    gl_FragColor = vec4(color, 1.0);
+                }
+
+            `
+        });
+
+        const geometry = new THREE.PlaneGeometry(2, 2);
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+
+        camera.position.z = 3;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            material.uniforms.iTime.value += 0.01; // Update time uniform
+            renderer.render(scene, camera);
+        }
+
+        animate();
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            material.uniforms.iResolution.value.set(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+
+</html>
