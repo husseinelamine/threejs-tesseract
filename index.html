@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive 3D Social Cube</title>
+    <style>
+        /* Votre CSS ici */
+        @use postcss-cssnext;
+
+        html,
+        body,
+        canvas {
+            cursor: pointer;
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        /* stay put when ios tries to elastic scroll */
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="index.js"></script>
+</body>
+
+</html>
